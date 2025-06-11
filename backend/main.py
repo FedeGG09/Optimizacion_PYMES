@@ -8,12 +8,14 @@ import io
 from pathlib import Path
 
 from backend.model_utils import load_data, predict_from_dataframe, evaluate_model
+from backend.models.util   import parse_month
+
 # -------------------------------------------------------
-# INSTANCIAMOS FastAPI Y CONFIGURAMOS CORS
+# INSTANCIA FastAPI Y CORS
 # -------------------------------------------------------
 app = FastAPI(
     title="Sales Forecasting API",
-    description="API para predecir ventas con XGBoost y obtener métricas.",
+    description="API para predecir ventas y calcular KPIs.",
     version="1.0"
 )
 
@@ -26,267 +28,238 @@ app.add_middleware(
 )
 
 # -------------------------------------------------------
-# RUTAS Y ARCHIVOS BASE
+# RUTAS Y VARIABLES GLOBALES
 # -------------------------------------------------------
 BASE_DIR         = Path(__file__).resolve().parent
 PROJECT_DIR      = BASE_DIR.parent
-
-# Variable global para la ruta del CSV subido
 uploaded_csv_path: Path | None = None
 
-# Directorio del frontend:
+# Frontend estáticos
 FRONTEND_DIR = PROJECT_DIR / "frontend"
-SRC_DIR      = FRONTEND_DIR / "src"
-CSS_DIR      = FRONTEND_DIR / "css"
-JS_DIR       = FRONTEND_DIR / "js"
+app.mount("/static/css", StaticFiles(directory=str(FRONTEND_DIR / "css")), name="static_css")
+app.mount("/static/js",  StaticFiles(directory=str(FRONTEND_DIR / "js")),  name="static_js")
 
-# -------------------------------------------------------
-# MONTAR ARCHIVOS ESTÁTICOS (Frontend)
-# -------------------------------------------------------
-app.mount("/static/css", StaticFiles(directory=str(CSS_DIR)), name="static_css")
-app.mount("/static/js", StaticFiles(directory=str(JS_DIR)), name="static_js")
-
-# -------------------------------------------------------
-# SERVIR index.html CUANDO PIDAN "/"
-# -------------------------------------------------------
 @app.get("/")
 def serve_frontend():
-    index_path = SRC_DIR / "index.html"
+    index_path = FRONTEND_DIR / "src" / "index.html"
     if not index_path.exists():
-        raise HTTPException(status_code=404, detail="index.html no encontrado en frontend/src/")
+        raise HTTPException(404, "index.html no encontrado en frontend/src/")
     return FileResponse(str(index_path))
 
-
 # -------------------------------------------------------
-# ENDPOINT: /upload_csv (Cargar CSV de entrenamiento)
+# Upload CSV
 # -------------------------------------------------------
 @app.post("/upload_csv")
 def upload_training_csv(file: UploadFile = File(...)):
-    """
-    Recibe el CSV de entrenamiento, lo guarda en PROJECT_DIR
-    y actualiza la variable global `uploaded_csv_path`.
-    """
     global uploaded_csv_path
     try:
         contents = file.file.read()
-        target_path = PROJECT_DIR / "stores_sales_forecasting.csv"
-        with open(target_path, "wb") as f:
+        target = PROJECT_DIR / "stores_sales_forecasting.csv"
+        with open(target, "wb") as f:
             f.write(contents)
-        uploaded_csv_path = target_path
-        return {"detail": f"CSV cargado correctamente en {target_path.name}"}
+        uploaded_csv_path = target
+        return {"detail": f"CSV cargado en {target.name}"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(500, str(e))
 
-
-def _get_df():
-    """
-    Función auxiliar que carga el DataFrame desde el CSV subido.
-    """
-    if not uploaded_csv_path:
-        raise HTTPException(status_code=400, detail="No se ha subido ningún CSV de entrenamiento.")
-    # puedes usar load_data si tus utils lo requieren, o pd.read_csv directo:
-    return pd.read_csv(str(uploaded_csv_path), encoding="latin1")
-
+def _get_df() -> pd.DataFrame:
+    if uploaded_csv_path:
+        return pd.read_csv(str(uploaded_csv_path), encoding="latin1")
+    else:
+        raise HTTPException(400, "No se ha subido ningún CSV.")
 
 # -------------------------------------------------------
-# ENDPOINT: /metrics_xgb (Obtener métricas del XGBoost)
+# Métricas XGB
 # -------------------------------------------------------
 @app.get("/metrics_xgb")
 def metrics_xgb_endpoint():
     try:
         df = load_data(str(uploaded_csv_path)) if uploaded_csv_path else _get_df()
-        metrics = evaluate_model(df)
-        return JSONResponse(content={"metrics": metrics})
+        return {"metrics": evaluate_model(df)}
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+        raise HTTPException(500, str(e))
 
 # -------------------------------------------------------
-# ENDPOINT: /predict_csv (Predicción batch a partir de CSV subido)
+# Predicciones
 # -------------------------------------------------------
 @app.post("/predict_csv")
 def predict_csv(file: UploadFile = File(...)):
     try:
-        contents = file.file.read()
-        df = pd.read_csv(io.BytesIO(contents), encoding="latin1")
-        preds = predict_from_dataframe(df)
-        return JSONResponse(content={"predictions": preds})
+        data = file.file.read()
+        df   = pd.read_csv(io.BytesIO(data), encoding="latin1")
+        return {"predictions": predict_from_dataframe(df)}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(400, str(e))
 
-
-# -------------------------------------------------------
-# ENDPOINT: /predict (Predicción a partir de JSON)
-# -------------------------------------------------------
 @app.post("/predict")
 def predict_json(data: list[dict]):
     try:
         df = pd.DataFrame(data)
-        preds = predict_from_dataframe(df)
-        return JSONResponse(content={"predictions": preds})
+        return {"predictions": predict_from_dataframe(df)}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
+        raise HTTPException(400, str(e))
 
 # -------------------------------------------------------
-# ENDPOINT: /kpis (Obtener KPI de negocio con filtros opcionales)
+# KPIs con filtrado por mes (nombre), vendor y producto
 # -------------------------------------------------------
 @app.get("/kpis")
 def get_kpis(
-    month: str = Query(None, description="Filtrar por mes (YYYY-MM), opcional."),
-    vendor: str = Query("Todos", description="Filtrar por Customer Name."),
-    product: str = Query("Todos", description="Filtrar por Product Name.")
+    month:   str = Query(None, description="Mes en español (p.ej. 'febrero')"),
+    vendor:  str = Query("Todos", description="Customer Name"),
+    product: str = Query("Todos", description="Product Name")
 ):
     df = _get_df()
-
+    # Aseguramos datetime
     if "Order Date" in df.columns:
         df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
+    else:
+        raise HTTPException(500, "No existe la columna 'Order Date'.")
 
+    # Filtrado por mes
     if month:
-        df = df[df["Order Date"].dt.to_period("M") == pd.Period(month, freq="M")]
-    if vendor and vendor != "Todos":
-        df = df[df["Customer Name"] == vendor]
-    if product and product != "Todos":
-        df = df[df["Product Name"] == product]
+        try:
+            mnum = parse_month(month)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        df = df[df["Order Date"].dt.month == mnum]
 
-    for col in ["Sales", "Profit"]:
+    # Filtrado por vendor/product
+    if vendor != "Todos":
+        df = df[df["Customer Name"] == vendor]
+    if product != "Todos":
+        df = df[df["Product Name"]  == product]
+
+    # Verificación de columnas
+    for col in ("Sales","Profit"):
         if col not in df.columns:
-            raise HTTPException(status_code=500, detail=f"Columna '{col}' no encontrada para calcular KPIs.")
+            raise HTTPException(500, f"Falta columna '{col}' para KPI.")
 
     total_sales    = df["Sales"].sum()
-    avg_profit_pct = (df["Profit"] / df["Sales"]).mean() if total_sales != 0 else 0
-    sale_count     = df.shape[0]
-    avg_sales      = df["Sales"].mean() if sale_count > 0 else 0
+    avg_profit_pct = (df["Profit"] / df["Sales"]).mean() if total_sales else 0
+    count          = len(df)
+    avg_sales      = df["Sales"].mean() if count else 0
 
     return {
-        "total_sales": float(total_sales),
+        "total_sales":    float(total_sales),
         "avg_profit_pct": float(avg_profit_pct),
-        "sale_count": int(sale_count),
-        "avg_sales": float(avg_sales)
+        "sale_count":     count,
+        "avg_sales":      float(avg_sales)
     }
 
-
 # -------------------------------------------------------
-# ENDPOINT: /grouped (Agrupar datos según un campo + filtros)
+# Datos agrupados
 # -------------------------------------------------------
 @app.get("/grouped")
 def get_grouped_data(
-    field: str = Query(
-        ...,
-        description=(
-            "Columna por la que agrupar. Puede ser: "
-            "'State', 'Postal Code', 'Region', 'Product ID', 'Category', "
-            "'Sub-Category', 'Product Name', 'Customer Name'."
-        )
-    ),
-    month: str = Query(None, description="Filtrar por mes (YYYY-MM), opcional."),
-    vendor: str = Query("Todos", description="Filtrar por Customer Name."),
-    product: str = Query("Todos", description="Filtrar por Product Name.")
+    field:   str = Query(..., description="Campo para agrupar"),
+    month:   str = Query(None, description="Mes en español (p.ej. 'marzo')"),
+    vendor:  str = Query("Todos"),
+    product: str = Query("Todos")
 ):
     df = _get_df()
-
     if "Order Date" in df.columns:
         df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
+    else:
+        raise HTTPException(500, "No existe la columna 'Order Date'.")
 
     if month:
-        df = df[df["Order Date"].dt.to_period("M") == pd.Period(month, freq="M")]
-    if vendor and vendor != "Todos":
+        try:
+            mnum = parse_month(month)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        df = df[df["Order Date"].dt.month == mnum]
+
+    if vendor  != "Todos":
         df = df[df["Customer Name"] == vendor]
-    if product and product != "Todos":
-        df = df[df["Product Name"] == product]
+    if product != "Todos":
+        df = df[df["Product Name"]  == product]
 
     if field not in df.columns:
-        raise HTTPException(status_code=400, detail=f"El campo '{field}' no existe en el CSV.")
+        raise HTTPException(400, f"Campo '{field}' no existe.")
 
-    for col in ["Sales", "Quantity", "Discount", "Profit"]:
+    for col in ("Sales","Quantity","Discount","Profit"):
         if col not in df.columns:
-            raise HTTPException(status_code=500, detail=f"Falta columna '{col}'.")
+            raise HTTPException(500, f"Falta columna '{col}' para agrupamiento.")
 
     grouped = (
         df.groupby(field, dropna=False)
           .agg(
-              total_sales=pd.NamedAgg(column="Sales", aggfunc="sum"),
-              total_quantity=pd.NamedAgg(column="Quantity", aggfunc="sum"),
-              avg_discount=pd.NamedAgg(column="Discount", aggfunc="mean"),
-              total_profit=pd.NamedAgg(column="Profit", aggfunc="sum")
+              total_sales   = ("Sales",    "sum"),
+              total_quantity= ("Quantity", "sum"),
+              avg_discount  = ("Discount", "mean"),
+              total_profit  = ("Profit",   "sum")
           )
           .reset_index()
           .rename(columns={field: "group"})
           .sort_values("total_sales", ascending=False)
     )
 
-    return {"data": [
-        {
-            "group": row["group"],
-            "total_sales": float(row["total_sales"]),
-            "total_quantity": int(row["total_quantity"]),
-            "avg_discount": float(row["avg_discount"]),
-            "total_profit": float(row["total_profit"])
-        }
-        for _, row in grouped.iterrows()
-    ]}
-
+    return {"data": grouped.to_dict(orient="records")}
 
 # -------------------------------------------------------
-# ENDPOINT: /sales_trend (Ventas por tiempo, mes o día, según filtros)
+# Tendencia de ventas
 # -------------------------------------------------------
 @app.get("/sales_trend")
 def sales_trend(
-    year: int = Query(2020, description="Año para el que se calculan las ventas (p.ej. 2020)"),
-    month: str = Query(None, description="Filtrar por mes (YYYY-MM), opcional."),
-    vendor: str = Query("Todos", description="Filtrar por Customer Name.")
+    year:   int    = Query(..., description="Año (p.ej. 2020)"),
+    month:  str    = Query(None, description="Mes en español (p.ej. 'abril')"),
+    vendor: str    = Query("Todos")
 ):
     df = _get_df()
-
     if "Order Date" not in df.columns:
-        raise HTTPException(status_code=500, detail="La columna 'Order Date' no existe en el CSV.")
+        raise HTTPException(500, "No existe 'Order Date'.")
     df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
     df = df[df["Order Date"].dt.year == year]
 
+    # Filtrar por mes si se indica
     if month:
         try:
-            periodo = pd.Period(month, freq="M")
-        except:
-            raise HTTPException(status_code=400, detail="Formato de month inválido. Debe ser 'YYYY-MM'.")
-        df = df[df["Order Date"].dt.to_period("M") == periodo]
-        if vendor and vendor != "Todos":
+            mnum = parse_month(month)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        df = df[df["Order Date"].dt.month == mnum]
+        if vendor != "Todos":
             df = df[df["Customer Name"] == vendor]
 
         df["Day"] = df["Order Date"].dt.day
-        grouped = df.groupby(["Customer Name", "Day"], dropna=False)["Sales"].sum().reset_index()
-        total_dias = periodo.days_in_month
-        todos_dias = list(range(1, total_dias + 1))
-
-        pivot = grouped.pivot(index="Day", columns="Customer Name", values="Sales").fillna(0)
-        pivot = pivot.reindex(todos_dias, fill_value=0)
-        labels = [f"{month}-{dia:02d}" for dia in todos_dias]
+        pivot = (
+            df.groupby(["Day","Customer Name"])["Sales"]
+              .sum()
+              .unstack(fill_value=0)
+        )
+        days = list(range(1, calendar.monthrange(year, mnum)[1] + 1))
+        labels = [f"{month}-{d:02d}" for d in days]
 
         return {
             "labels": labels,
             "datasets": [
-                {"vendor": cliente, "values": [float(v) for v in pivot[cliente].tolist()]}
-                for cliente in pivot.columns
+                {"vendor": v, "values": pivot.get(v, pd.Series([0]*len(days))).tolist()}
+                for v in pivot.columns
             ]
         }
 
-    # mes no especificado: serie mes a mes
-    if vendor and vendor != "Todos":
+    # Serie mes a mes
+    if vendor != "Todos":
         df = df[df["Customer Name"] == vendor]
-    if "Sales" not in df.columns or "Customer Name" not in df.columns:
-        raise HTTPException(status_code=500, detail="El CSV no contiene 'Sales' o 'Customer Name'.")
 
-    df["YearMonth"] = df["Order Date"].dt.to_period("M").astype(str)
-    grouped = df.groupby(["Customer Name", "YearMonth"], dropna=False)["Sales"].sum().reset_index()
-    pivot = grouped.pivot(index="YearMonth", columns="Customer Name", values="Sales").fillna(0)
-    todos_meses = [f"{year}-{mes:02d}" for mes in range(1, 13)]
-    pivot = pivot.reindex(todos_meses, fill_value=0)
+    df["YearMonth"] = df["Order Date"].dt.month
+    pivot = (
+        df.groupby(["YearMonth","Customer Name"])["Sales"]
+          .sum()
+          .unstack(fill_value=0)
+    )
+    months = list(range(1,13))
+    labels = [f"{year}-{m:02d}" for m in months]
 
     return {
-        "labels": todos_meses,
+        "labels": labels,
         "datasets": [
-            {"vendor": cliente, "values": [float(v) for v in pivot[cliente].tolist()]}
-            for cliente in pivot.columns
+            {
+                "vendor": v,
+                "values": [float(pivot.get(v, pd.Series([0]*12)).get(m, 0)) for m in months]
+            }
+            for v in pivot.columns
         ]
     }
