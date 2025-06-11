@@ -3,6 +3,35 @@ import joblib
 import os
 from pathlib import Path
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+import calendar
+from typing import Dict
+
+# Diccionario para mapear nombre de mes en español → número 1–12
+MONTH_MAP: Dict[str, int] = {
+    'enero':       1,
+    'febrero':     2,
+    'marzo':       3,
+    'abril':       4,
+    'mayo':        5,
+    'junio':       6,
+    'julio':       7,
+    'agosto':      8,
+    'septiembre':  9,
+    'octubre':    10,
+    'noviembre':  11,
+    'diciembre':  12,
+}
+
+def parse_month(month_name: str) -> int:
+    """
+    Recibe un nombre de mes en español (cualquier capitalización),
+    y devuelve su número (1–12). Si no lo encuentra, lanza ValueError.
+    """
+    m = month_name.strip().lower()
+    if m not in MONTH_MAP:
+        raise ValueError(f"Mes inválido: {month_name!r}. Debe ser uno de {list(MONTH_MAP.keys())}.")
+    return MONTH_MAP[m]
+
 
 # -------------------------------------------------------------------
 # 1) Rutas absolutas al modelo XGBoost y a los feature names
