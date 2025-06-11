@@ -1,0 +1,277 @@
+/* =================================================================
+   dashboard.css
+   ================================================================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(140deg, #2c0348, #1b0630);
+  color: #eee;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+/* HEADER */
+header {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+header img {
+  width: 36px;
+  height: 36px;
+}
+
+header h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+/* CONTENEDOR PRINCIPAL */
+main {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 1. FILA DE KPIs */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.kpi-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.kpi-title {
+  font-size: 0.9rem;
+  color: #bbb;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 0.3rem;
+}
+
+/* 2. FILA DE SELECTORES */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.filter-item label {
+  font-size: 0.9rem;
+  color: #ddd;
+}
+
+/* Habilitamos la flechita nativa de los <select> */
+.filter-item input[type="month"],
+.filter-item select {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.4rem 0.6rem;
+  min-width: 140px;
+  appearance: auto;
+  cursor: pointer;
+}
+
+.filter-item input[type="month"]::-webkit-inner-spin-button,
+.filter-item input[type="month"]::-webkit-clear-button {
+  display: none;
+}
+
+.filter-item select:focus,
+.filter-item input[type="month"]:focus {
+  outline: 2px solid #5a00d0;
+}
+
+/* 3. GRÁFICO DE LÍNEAS */
+.chart-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  height: 300px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-section h2 {
+  font-size: 1.2rem;
+  color: #fff;
+  margin-bottom: 0.8rem;
+  flex: 0 0 auto;
+}
+
+.chart-section canvas {
+  flex: 1 1 auto;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 4. FILA DE GRÁFICOS INFERIORES */
+.bottom-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.2rem;
+}
+
+.chart-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  height: 280px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card h3 {
+  font-size: 1rem;
+  color: #fff;
+  margin-bottom: 0.6rem;
+  flex: 0 0 auto;
+}
+
+.chart-card canvas {
+  flex: 1 1 auto;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ajustes generales a canvas */
+canvas {
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* html, body ocupen toda la pantalla */
+html,
+body {
+  height: 100%;
+}
+/* ============================
+   Sobrescribir color de texto 
+   en <select> y <option>
+   ============================ */
+.filter-item select {
+  /* Forzar que el texto del select sea negro */
+  color: #000; 
+  /* Si el fondo del select es blanco, el texto resaltará */
+  background-color: #fff; 
+}
+
+/* ----------------------------
+   Asegurar que cada <option>
+   también tenga texto negro
+   ---------------------------- */
+.filter-item select option {
+  color: #000;
+  background-color: #fff;
+}
+
+/* ===========================
+   SECCIÓN DE PREDICCIÓN
+   =========================== */
+.prediction-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(6px);
+  margin-top: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.prediction-card h2 {
+  font-size: 1.3rem;
+  color: #fff;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.form-row label {
+  color: #ddd;
+  margin-bottom: 0.3rem;
+  font-size: 0.95rem;
+}
+
+.form-row select,
+.form-row input {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.form-row select:focus,
+.form-row input:focus {
+  outline: 2px solid #5a00d0;
+}
+
+.btn-green {
+  background-color: #28a745;
+  color: #fff;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  width: 100%;
+  font-weight: bold;
+}
+
+.btn-green:hover {
+  background-color: #218838;
+}
+
+.prediction-result {
+  margin-top: 1rem;
+  color: #fff;
+  font-size: 1.1rem;
+  text-align: center;
+}

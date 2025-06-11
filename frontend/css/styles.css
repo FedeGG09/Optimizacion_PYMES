@@ -1,0 +1,227 @@
+/* Reset y estilos base */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f7f7f7;
+  margin: 0;
+  padding: 0;
+}
+
+/* Contenedor principal */
+.container,
+main#actions {
+  max-width: 900px;
+  margin: 40px auto;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Títulos */
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+h2 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+/* ======================
+   UPLOADER
+   ====================== */
+.uploader-section {
+  max-width: 600px;
+  margin: 30px auto;
+  padding: 20px;
+  background: #ffffffee;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  text-align: center;
+}
+.uploader-section h2 {
+  margin-bottom: 15px;
+}
+#csvFileInput {
+  padding: 6px;
+}
+#uploadBtn {
+  margin-left: 10px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #28a745;
+  color: white;
+  cursor: pointer;
+}
+#uploadBtn:disabled {
+  background-color: #94d3a2;
+  cursor: default;
+}
+#uploadStatus {
+  margin-top: 10px;
+  color: #333;
+}
+
+/* ======================
+   ACCIONES (OCULTO HASTA UPLOAD)
+   ====================== */
+#actions {
+  display: none;
+}
+
+/* cuando se añade la clase .visible, se muestra */
+#actions.visible {
+  display: block;
+}
+
+/* ======================
+   FILA DE KPIs
+   ====================== */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+.kpi-card {
+  background-color: #fafafa;
+  border: 1px solid #ececec;
+  border-radius: 6px;
+  padding: 15px;
+  text-align: center;
+}
+.kpi-title {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #222;
+}
+
+/* ======================
+   FILA DE SELECTORES
+   ====================== */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+.filter-item {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+}
+.filter-item label {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+  color: #333;
+}
+.filter-item input,
+.filter-item select {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* ======================
+   GRÁFICOS
+   ====================== */
+.chart-section,
+.bottom-charts {
+  margin-bottom: 30px;
+}
+.chart-section canvas,
+.chart-card canvas {
+  background: #ffffffdd;
+  border-radius: 6px;
+}
+.bottom-charts {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.chart-card {
+  flex: 1 1 300px;
+  padding: 15px;
+  background: #fafafa;
+  border: 1px solid #ececec;
+  border-radius: 6px;
+}
+
+/* ======================
+   SECCIÓN DE PREDICCIÓN
+   ====================== */
+.prediction-section {
+  background: #ffffffee;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 40px;
+}
+.prediction-card {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.prediction-card h2 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+.prediction-card .form-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+.prediction-card .form-row label {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+.prediction-card .form-row select,
+.prediction-card .form-row input {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.btn-green {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-green:hover {
+  background-color: #218838;
+}
+.prediction-result {
+  margin-top: 15px;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+/* ======================
+   TABLAS Y ERRORES
+   ====================== */
+#results-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+#results-table th,
+#results-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+#results-table th {
+  background-color: #f2f2f2;
+}
+.error {
+  color: #e74c3c;
+  margin-top: 10px;
+}
