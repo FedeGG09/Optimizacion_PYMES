@@ -4,10 +4,9 @@ import os
 from pathlib import Path
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 import calendar
-from typing import Dict
 
 # Diccionario para mapear nombre de mes en español → número 1–12
-MONTH_MAP: Dict[str, int] = {
+MONTH_MAP = {
     'enero':       1,
     'febrero':     2,
     'marzo':       3,
