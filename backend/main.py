@@ -7,8 +7,8 @@ import pandas as pd
 import io
 from pathlib import Path
 
-from backend.model_utils import load_data, predict_from_dataframe, evaluate_model
-from backend.model.util import parse_month
+from backend.model_utils import load_data, predict_from_dataframe, evaluate_model, parse_month
+
 
 # -------------------------------------------------------
 # INSTANCIA FastAPI Y CORS
